@@ -1,42 +1,45 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_beacon/flutter_beacon.dart';
+import 'package:flutter_beacon/flutter_beacon.dart' as lib;
 import 'package:beacon_app/beacon.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const BeaconScanner());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class BeaconScanner extends StatelessWidget {
+  const BeaconScanner({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Beacon Scanner',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const BeaconScannerPage(title: 'Beacon Scanner'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+class BeaconScannerPage extends StatefulWidget {
+  const BeaconScannerPage({super.key, required this.title});
 
   final String title;
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<BeaconScannerPage> createState() => _BeaconScannerPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _BeaconScannerPageState extends State<BeaconScannerPage> {
+  StreamSubscription? beaconStream;
+  List<Beacon> beacons = [];
 
-  void _incrementCounter() {
+  void _addBeacon(Beacon beacon) {
     setState(() {
-      _counter++;
+      beacons = [...beacons, beacon]; 
     });
   }
 
@@ -55,14 +58,14 @@ class _MyHomePageState extends State<MyHomePage> {
               'You have pushed the button this many times:',
             ),
             Text(
-              '$_counter',
+              'Some text',
               style: Theme.of(context).textTheme.headlineMedium,
             ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
+        onPressed: () {},
         tooltip: 'Increment',
         child: const Icon(Icons.add),
       ),
