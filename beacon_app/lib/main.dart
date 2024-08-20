@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_beacon/flutter_beacon.dart';
+import 'package:beacon_app/beacon.dart';
 
 void main() {
   runApp(const MyApp());
