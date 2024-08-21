@@ -1,18 +1,24 @@
 class Beacon {
-  final String id;
   final String uuid;
-  final String major;
-  final String minor;
-  final String mac;
-
-  double distance;
+  final int major;
+  final int minor;
 
   Beacon({
-    required this.id,
     required this.uuid,
     required this.major,
     required this.minor,
-    required this.mac,
-    required this.distance,
   });
+
+  Map<String, Object?> toMap() {
+    return {
+      'uuid': uuid,
+      'major': major,
+      'minor': minor,
+    };
+  }
+
+  @override
+  String toString() {
+    return 'Beacon{uuid: $uuid, major: $major, minor: $minor}';
+  }
 }

@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:beacon_app/db.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -34,12 +36,14 @@ class BeaconScannerPage extends StatefulWidget {
 }
 
 class _BeaconScannerPageState extends State<BeaconScannerPage> {
-  var targetedBeacon;
-  List<Region> regions = [];
+  List<Region> targetBeacons = [];
+  var targetBeacon = const Beacon(proximityUUID: "", major: 0, minor: 0, accuracy: 0.0);
 
   @override
   void initState() {
     super.initState();
+
+    _getTargetBeacons();
 
     Future<void> scanning = initBeaconScanning();
     scanning
@@ -55,9 +59,26 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
       });
   }
 
+  Future<void> _getTargetBeacons() async {
+    await Db.connect();
+    await Db.postBeacons();
+
+    final beacons = await Db.getBeacons();
+
+    for (var i = 0; i < beacons.length; i++) {
+      var targetBeacon = Region(
+        identifier: 'iBeacon_$i',
+        proximityUUID: beacons[i].uuid,
+        major: beacons[i].major,
+        minor: beacons[i].minor,
+      );
+      targetBeacons.add(targetBeacon);
+    }
+  }
+
   void _addBeacon(Beacon beacon) {
     setState(() {
-      targetedBeacon = beacon;
+      targetBeacon = beacon;
     });
   }
 
@@ -75,17 +96,8 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
       return;
     }
 
-    var region = Region(
-      identifier: 'IOTS_TG_DC8E5D2',
-      proximityUUID: 'ffffffff-1070-1234-5678-123456789123',
-      major: 1000,
-      minor: 1138,
-    );
-
-    regions.add(region);
-
-    if (regions.isNotEmpty) {
-      flutterBeacon.ranging(regions).listen((result) {
+    if (targetBeacons.isNotEmpty) {
+      flutterBeacon.ranging(targetBeacons).listen((result) {
         if (result.beacons.isNotEmpty) {
           for (var beacon in result.beacons) {
             _addBeacon(beacon);
@@ -94,14 +106,14 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
           if (kDebugMode) {
             print('\x1B[32m''BEACON FOUND''\x1B[0m');
             print(''
-              'proximityUUID: ${targetedBeacon.proximityUUID}, '
-              'macAddress: ${targetedBeacon.macAddress}, '
-              'major: ${targetedBeacon.major}, '
-              'minor: ${targetedBeacon.minor}, '
-              'rssi: ${targetedBeacon.rssi}, '
-              'txPower: ${targetedBeacon.txPower}, '
-              'accuracy: ${targetedBeacon.accuracy}, '
-              'proximity: ${targetedBeacon.proximity}'
+              'proximityUUID: ${targetBeacon.proximityUUID}, '
+              'macAddress: ${targetBeacon.macAddress}, '
+              'major: ${targetBeacon.major}, '
+              'minor: ${targetBeacon.minor}, '
+              'rssi: ${targetBeacon.rssi}, '
+              'txPower: ${targetBeacon.txPower}, '
+              'accuracy: ${targetBeacon.accuracy}, '
+              'proximity: ${targetBeacon.proximity}'
             '');
           }
         } else {
@@ -124,29 +136,29 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text('proximityUUID', style: Theme.of(context).textTheme.headlineMedium),
-            Text('${targetedBeacon?.proximityUUID}'),
+            const Text('proximityUUID'),
+            Text(targetBeacon.proximityUUID),
             const SizedBox(height: 12),
-            Text('macAddress', style: Theme.of(context).textTheme.headlineMedium),
-            Text('${targetedBeacon?.macAddress}'),
+            const Text('macAddress'),
+            Text(targetBeacon.macAddress.toString()),
             const SizedBox(height: 12),
-            Text('major', style: Theme.of(context).textTheme.headlineMedium),
-            Text('${targetedBeacon?.major}'),
+            const Text('major'),
+            Text(targetBeacon.major.toString()),
             const SizedBox(height: 12),
-            Text('minor', style: Theme.of(context).textTheme.headlineMedium),
-            Text('${targetedBeacon?.minor}'),
+            const Text('minor'),
+            Text(targetBeacon.minor.toString()),
             const SizedBox(height: 12),
-            Text('rssi', style: Theme.of(context).textTheme.headlineMedium),
-            Text('${targetedBeacon?.rssi}'),
+            const Text('rssi'),
+            Text(targetBeacon.rssi.toString()),
             const SizedBox(height: 12),
-            Text('txPower', style: Theme.of(context).textTheme.headlineMedium),
-            Text('${targetedBeacon?.txPower}'),
+            const Text('txPower'),
+            Text(targetBeacon.txPower.toString()),
             const SizedBox(height: 12),
-            Text('accuracy', style: Theme.of(context).textTheme.headlineMedium),
-            Text('${targetedBeacon?.accuracy}'),
+            const Text('accuracy'),
+            Text(targetBeacon.accuracy.toString()),
             const SizedBox(height: 12),
-            Text('proximity', style: Theme.of(context).textTheme.headlineMedium),
-            Text('${targetedBeacon?.proximity}'),
+            const Text('proximity'),
+            Text(targetBeacon.proximity.toString()),
           ],
         ),
       ),
