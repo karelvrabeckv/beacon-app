@@ -36,7 +36,8 @@ class BeaconScannerPage extends StatefulWidget {
 
 class _BeaconScannerPageState extends State<BeaconScannerPage> {
   List<Region> targetBeacons = [];
-  Beacon? beaconFound;
+  Map<String, double> beaconsFound = {};
+  MapEntry<String, double>? nearestBeacon;
 
   @override
   void initState() {
@@ -87,13 +88,12 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
         .ranging(targetBeacons)
         .listen((result) {
           if (result.beacons.isNotEmpty) {
-            _addBeacon(result.beacons[0]);
+            _updateBeaconsFound(result.beacons);
+            _updateNearestBeacon();
 
             if (kDebugMode) {
               print('\x1B[32mBEACONS FOUND\x1B[0m');
-              print(
-                'macAddress: ${beaconFound!.macAddress}, '
-                'accuracy: ${beaconFound!.accuracy}, '
+              print('macAddress: ${nearestBeacon!.key}, accuracy: ${nearestBeacon!.value}, '
               );
             }
           } else {
@@ -105,9 +105,17 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
     }
   }
 
-  void _addBeacon(Beacon beacon) {
+  void _updateBeaconsFound(List<Beacon> beacons) {
+    for (final beacon in beacons) {
+      beaconsFound[beacon.macAddress!] = beacon.accuracy;
+    }
+  }
+
+  void _updateNearestBeacon() {
     setState(() {
-      beaconFound = beacon;
+      nearestBeacon = beaconsFound.entries.reduce((current, next) =>
+        current.value < next.value ? current : next
+      );
     });
   }
 
@@ -122,11 +130,30 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text('macAddress'),
-            Text(beaconFound?.macAddress.toString() ?? 'None'),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: const Text('All beacons:'),
+            ),
+            for (final key in beaconsFound.keys)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(18.0),
+                  child: Text('${key} ${beaconsFound[key]}m'),
+                )
+              ),
             const SizedBox(height: 12),
-            const Text('accuracy'),
-            Text(beaconFound?.accuracy.toString() ?? 'None'),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: const Text('The nearest beacon:'),
+            ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(18.0),
+                child: Text(
+                  '${nearestBeacon?.key.toString() ?? ''} ${nearestBeacon?.value.toString() ?? ''}m'
+                ),
+              ),
+            ),
           ],
         ),
       ),
