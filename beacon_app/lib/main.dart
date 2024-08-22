@@ -36,12 +36,7 @@ class BeaconScannerPage extends StatefulWidget {
 
 class _BeaconScannerPageState extends State<BeaconScannerPage> {
   List<Region> targetBeacons = [];
-  var targetBeacon = const Beacon(
-    proximityUUID: "",
-    major: 0,
-    minor: 0,
-    accuracy: 0.0
-  );
+  Beacon? beaconFound;
 
   @override
   void initState() {
@@ -58,12 +53,12 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
 
       final beacons = await Db.getBeacons();
 
-      for (var i = 0; i < beacons.length; i++) {
+      for (final beacon in beacons) {
         var targetBeacon = Region(
-          identifier: 'iBeacon_$i',
-          proximityUUID: beacons[i].uuid,
-          major: beacons[i].major,
-          minor: beacons[i].minor,
+          identifier: beacon.id.toString(),
+          proximityUUID: beacon.uuid,
+          major: beacon.major,
+          minor: beacon.minor,
         );
         targetBeacons.add(targetBeacon);
       }
@@ -97,8 +92,8 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
             if (kDebugMode) {
               print('\x1B[32mBEACONS FOUND\x1B[0m');
               print(
-                'macAddress: ${targetBeacon.macAddress}, '
-                'accuracy: ${targetBeacon.accuracy}, '
+                'macAddress: ${beaconFound!.macAddress}, '
+                'accuracy: ${beaconFound!.accuracy}, '
               );
             }
           } else {
@@ -112,7 +107,7 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
 
   void _addBeacon(Beacon beacon) {
     setState(() {
-      targetBeacon = beacon;
+      beaconFound = beacon;
     });
   }
 
@@ -128,10 +123,10 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             const Text('macAddress'),
-            Text(targetBeacon.macAddress.toString()),
+            Text(beaconFound?.macAddress.toString() ?? 'None'),
             const SizedBox(height: 12),
             const Text('accuracy'),
-            Text(targetBeacon.accuracy.toString()),
+            Text(beaconFound?.accuracy.toString() ?? 'None'),
           ],
         ),
       ),

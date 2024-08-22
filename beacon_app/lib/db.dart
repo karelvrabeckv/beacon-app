@@ -15,7 +15,7 @@ class Db {
       version: 1,
       onCreate: (database, version) {
         return database.execute(
-          'CREATE TABLE beacon(uuid TEXT PRIMARY KEY, major INTEGER, minor INTEGER)',
+          'CREATE TABLE beacon(id INTEGER PRIMARY KEY, uuid TEXT, major INTEGER, minor INTEGER)',
         );
       },
     );
@@ -33,8 +33,13 @@ class Db {
     final List<Map<String, Object?>> beaconMaps = await db!.query('beacon');
 
     return [
-      for (final {'uuid': uuid as String, 'major': major as int, 'minor': minor as int} in beaconMaps)
-        Beacon(uuid: uuid, major: major, minor: minor)
+      for (final {
+        'id': id as int,
+        'uuid': uuid as String,
+        'major': major as int,
+        'minor': minor as int
+      } in beaconMaps)
+        Beacon(id: id, uuid: uuid, major: major, minor: minor)
     ];
   }
 
@@ -51,8 +56,9 @@ class Db {
   }
 
   static Future<void> postBeacons() async {
-    await postBeacon(Beacon(uuid: 'ffffffff-1070-1234-5678-123456789123', major: 1000, minor: 1138));
-    await postBeacon(Beacon(uuid: 'a92ee200-5501-11e4-916c-0800200c9a66', major: 12061, minor: 28012));
+    await postBeacon(Beacon(id: 0, uuid: 'ffffffff-1070-1234-5678-123456789123', major: 1000, minor: 1138));
+    await postBeacon(Beacon(id: 1, uuid: 'a92ee200-5501-11e4-916c-0800200c9a66', major: 12061, minor: 28012));
+    await postBeacon(Beacon(id: 2, uuid: 'a92ee200-5501-11e4-916c-0800200c9a66', major: 12939, minor: 48773));
   }
 
   static Future<void> putBeacon(Beacon beacon) async {
@@ -63,20 +69,20 @@ class Db {
     await db!.update(
       'beacon',
       beacon.toMap(),
-      where: 'uuid = ?',
-      whereArgs: [beacon.uuid],
+      where: 'id = ?',
+      whereArgs: [beacon.id],
     );
   }
 
-  static Future<void> deleteBeacon(String uuid) async {
+  static Future<void> deleteBeacon(String id) async {
     if (db == null) {
       throw Exception('\x1B[31m''ERROR: There is no DB''\x1B[31m');
     }
 
     await db!.delete(
       'beacon',
-      where: 'uuid = ?',
-      whereArgs: [uuid],
+      where: 'id = ?',
+      whereArgs: [id],
     );
   }
 }
