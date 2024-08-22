@@ -19,11 +19,15 @@ class Db {
         );
       },
     );
+
+    if (db == null) {
+      throw Exception('\x1B[31m''ERROR: Connection failed''\x1B[31m');
+    }
   }
 
   static Future<List<Beacon>> getBeacons() async {
     if (db == null) {
-      throw Exception('ERROR: There is no DB');
+      throw Exception('\x1B[31m''ERROR: There is no DB''\x1B[31m');
     }
 
     final List<Map<String, Object?>> beaconMaps = await db!.query('beacon');
@@ -36,7 +40,7 @@ class Db {
 
   static Future<void> postBeacon(Beacon beacon) async {
     if (db == null) {
-      throw Exception('ERROR: There is no DB');
+      throw Exception('\x1B[31m''ERROR: There is no DB''\x1B[31m');
     }
 
     await db!.insert(
@@ -53,7 +57,7 @@ class Db {
 
   static Future<void> putBeacon(Beacon beacon) async {
     if (db == null) {
-      throw Exception('ERROR: There is no DB');
+      throw Exception('\x1B[31m''ERROR: There is no DB''\x1B[31m');
     }
 
     await db!.update(
@@ -66,7 +70,7 @@ class Db {
 
   static Future<void> deleteBeacon(String uuid) async {
     if (db == null) {
-      throw Exception('ERROR: There is no DB');
+      throw Exception('\x1B[31m''ERROR: There is no DB''\x1B[31m');
     }
 
     await db!.delete(
