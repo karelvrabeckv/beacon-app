@@ -43,8 +43,12 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
   void initState() {
     super.initState();
 
-    _getTargetBeacons();
-    _startScanning();
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    await _getTargetBeacons();
+    await _startScanning();
   }
 
   Future<void> _getTargetBeacons() async {
@@ -67,7 +71,6 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
       if (kDebugMode) {
         print('\x1B[31m$e\x1B[31m');
       }
-      return;
     }
   }
 
