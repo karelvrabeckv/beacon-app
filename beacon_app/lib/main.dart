@@ -92,13 +92,8 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
             _updateNearestBeacon();
 
             if (kDebugMode) {
-              print('\x1B[32mBEACONS FOUND\x1B[0m');
-              print('macAddress: ${nearestBeacon!.key}, accuracy: ${nearestBeacon!.value}, '
-              );
-            }
-          } else {
-            if (kDebugMode) {
-              print('\x1B[31mBEACONS NOT FOUND\x1B[31m');
+              print('\x1B[32mBEACONS FOUND\x1B[0m ${DateTime.now()}');
+              beaconsFound.forEach((key, value) => print('${key} ${value}m'));
             }
           }
       });
@@ -112,11 +107,45 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
   }
 
   void _updateNearestBeacon() {
+    var previousMacAddress = nearestBeacon?.key;
+
     setState(() {
       nearestBeacon = beaconsFound.entries.reduce((current, next) =>
         current.value < next.value ? current : next
       );
     });
+
+    var currentMacAddress = nearestBeacon?.key;
+
+    if (previousMacAddress != currentMacAddress) {
+      // The nearest beacon has changed
+      _checkPresence(currentMacAddress);
+    }
+  }
+
+  Future<void> _checkPresence(String? checkedMacAddress) async {
+    try {
+      await Future.delayed(Duration(seconds: 5));
+      _checkBeacon(1, checkedMacAddress);
+
+      await Future.delayed(Duration(seconds: 5));
+      _checkBeacon(2, checkedMacAddress);
+
+      await Future.delayed(Duration(seconds: 5));
+      _checkBeacon(3, checkedMacAddress);
+    } on Exception catch (e) {
+      print('\x1B[33m$e\x1B[33m');
+    }
+  }
+
+  void _checkBeacon(int step, String? checkedMacAddress) {
+    var currentMacAddress = nearestBeacon?.key;
+
+    if (currentMacAddress != checkedMacAddress) {
+      throw Exception('NEAREST BEACON CHANGED AGAIN');
+    }
+    
+    print('\x1B[33mPRESENCE CHECKED $step/3\x1B[33m $checkedMacAddress');
   }
 
   @override
@@ -150,7 +179,7 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
               child: Padding(
                 padding: const EdgeInsets.all(18.0),
                 child: Text(
-                  '${nearestBeacon?.key.toString() ?? ''} ${nearestBeacon?.value.toString() ?? ''}m'
+                  '${nearestBeacon?.key.toString() ?? ''}'
                 ),
               ),
             ),
