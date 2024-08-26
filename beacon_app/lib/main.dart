@@ -38,8 +38,10 @@ class BeaconScannerPage extends StatefulWidget {
 class _BeaconScannerPageState extends State<BeaconScannerPage> {
   List<Region> targetBeacons = [];
   Map<String, double> beaconsFound = {};
+  Map<String, bool> beaconsChecks = {};
   MapEntry<String, double>? nearestBeacon;
   DateTime? nearestBeaconAge;
+  List<String> presenceLog = [];
 
   @override
   void initState() {
@@ -94,6 +96,7 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
         .listen((result) {
           if (result.beacons.isNotEmpty) {
             _updateBeaconsFound(result.beacons);
+            _updateBeaconsChecks(result.beacons);
             _updateNearestBeacon();
 
             if (kDebugMode) {
@@ -111,6 +114,14 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
     }
   }
 
+  void _updateBeaconsChecks(List<Beacon> beacons) {
+    for (final beacon in beacons) {
+      if (!beaconsChecks.containsKey(beacon.macAddress!)) {
+        beaconsChecks[beacon.macAddress!] = false;
+      }
+    }
+  }
+
   void _updateNearestBeacon() {
     var previousMacAddress = nearestBeacon?.key;
 
@@ -120,12 +131,16 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
       );
     });
 
-    var currentMacAddress = nearestBeacon?.key;
+    var currentMacAddress = nearestBeacon!.key;
 
     if (previousMacAddress != currentMacAddress) {
       // The nearest beacon has changed
       _updateNearestBeaconAge();
-      _checkPresence(currentMacAddress);
+
+      if (beaconsChecks[currentMacAddress] == false) {
+        beaconsChecks[currentMacAddress] = true;
+        _checkPresence(currentMacAddress);
+      }
     }
   }
 
@@ -135,7 +150,7 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
     });
   }
 
-  Future<void> _checkPresence(String? checkedMacAddress) async {
+  Future<void> _checkPresence(String checkedMacAddress) async {
     try {
       await Future.delayed(Duration(seconds: TIME_STEP));
       _checkBeacon(1, checkedMacAddress);
@@ -145,13 +160,34 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
 
       await Future.delayed(Duration(seconds: TIME_STEP));
       _checkBeacon(3, checkedMacAddress);
+
+      await Future.delayed(Duration(seconds: TIME_STEP));
+      _checkBeacon(4, checkedMacAddress);
+
+      await Future.delayed(Duration(seconds: TIME_STEP));
+      _checkBeacon(5, checkedMacAddress);
     } on Exception catch (e) {
       print('\x1B[33m$e\x1B[33m');
+    } finally {
+      beaconsChecks[checkedMacAddress] = false;
+    }
+  }
+  void _checkBeacon(int step, String checkedMacAddress) {
+    _checkBeaconDistance(checkedMacAddress);
+    _checkBeaconChange(checkedMacAddress);
+    _logPresence(step, checkedMacAddress);
+  }
+
+  void _checkBeaconDistance(String checkedMacAddress) {
+    var currentDistance = beaconsFound[checkedMacAddress]!;
+
+    if (currentDistance > MAX_DISTANCE) {
+      throw Exception('CHECKED BEACON OUT OF SCOPE');
     }
   }
 
-  void _checkBeacon(int step, String? checkedMacAddress) {
-    var currentMacAddress = nearestBeacon?.key;
+  void _checkBeaconChange(String checkedMacAddress) {
+    var currentMacAddress = nearestBeacon!.key;
 
     if (currentMacAddress != checkedMacAddress) {
       DateTime now = DateTime.now();
@@ -162,8 +198,15 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
         throw Exception('NEAREST BEACON CHANGED');
       }
     }
-    
-    print('\x1B[33mPRESENCE CHECKED $step/3\x1B[33m $checkedMacAddress');
+  }
+
+  void _logPresence(int step, String checkedMacAddress) {
+    String record = 'PRESENCE $step/5 $checkedMacAddress';
+    print('\x1B[33m$record/3\x1B[33m');
+
+    setState(() {
+      presenceLog = [...presenceLog, record];
+    });
   }
 
   @override
@@ -177,6 +220,7 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
+            const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: const Text('All beacons:'),
@@ -199,6 +243,17 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
                 child: Text(
                   '${nearestBeacon?.key.toString() ?? ''}'
                 ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: ListView.builder(
+                itemCount: presenceLog.length,
+                itemBuilder: (BuildContext context, int index) {
+                  return Container(
+                    child: Center(child: Text(presenceLog[index])),
+                  );
+                }
               ),
             ),
           ],
