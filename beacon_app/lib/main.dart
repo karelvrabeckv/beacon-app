@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:beacon_app/constants.dart';
 import 'package:beacon_app/db.dart';
 
 import 'package:flutter/foundation.dart';
@@ -38,6 +39,7 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
   List<Region> targetBeacons = [];
   Map<String, double> beaconsFound = {};
   MapEntry<String, double>? nearestBeacon;
+  DateTime? nearestBeaconAge;
 
   @override
   void initState() {
@@ -122,19 +124,26 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
 
     if (previousMacAddress != currentMacAddress) {
       // The nearest beacon has changed
+      _updateNearestBeaconAge();
       _checkPresence(currentMacAddress);
     }
   }
 
+  void _updateNearestBeaconAge() {
+    setState(() {
+      nearestBeaconAge = DateTime.now();
+    });
+  }
+
   Future<void> _checkPresence(String? checkedMacAddress) async {
     try {
-      await Future.delayed(Duration(seconds: 5));
+      await Future.delayed(Duration(seconds: TIME_STEP));
       _checkBeacon(1, checkedMacAddress);
 
-      await Future.delayed(Duration(seconds: 5));
+      await Future.delayed(Duration(seconds: TIME_STEP));
       _checkBeacon(2, checkedMacAddress);
 
-      await Future.delayed(Duration(seconds: 5));
+      await Future.delayed(Duration(seconds: TIME_STEP));
       _checkBeacon(3, checkedMacAddress);
     } on Exception catch (e) {
       print('\x1B[33m$e\x1B[33m');
@@ -145,7 +154,13 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
     var currentMacAddress = nearestBeacon?.key;
 
     if (currentMacAddress != checkedMacAddress) {
-      throw Exception('NEAREST BEACON CHANGED AGAIN');
+      DateTime now = DateTime.now();
+      Duration difference = now.difference(nearestBeaconAge!);
+      int differenceInSeconds = difference.inSeconds % 60;
+
+      if (differenceInSeconds > TIME_STEP) {
+        throw Exception('NEAREST BEACON CHANGED');
+      }
     }
     
     print('\x1B[33mPRESENCE CHECKED $step/3\x1B[33m $checkedMacAddress');
