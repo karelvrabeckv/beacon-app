@@ -1,1 +1,1 @@
-# beacon-app
+# beacon-scanner

@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:beacon_app/constants.dart';
-import 'package:beacon_app/db.dart';
+import 'package:beacon_scanner/constants.dart';
+import 'package:beacon_scanner/db.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -101,7 +101,7 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
 
             if (kDebugMode) {
               print('\x1B[32mBEACONS FOUND\x1B[0m ${DateTime.now()}');
-              beaconsFound.forEach((key, value) => print('${key} ${value}m'));
+              beaconsFound.forEach((key, value) => print('$key ${value}m'));
             }
           }
       });
@@ -152,22 +152,19 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
 
   Future<void> _checkPresence(String checkedMacAddress) async {
     try {
-      await Future.delayed(Duration(seconds: TIME_STEP));
       _checkBeacon(1, checkedMacAddress);
-
-      await Future.delayed(Duration(seconds: TIME_STEP));
+      await Future.delayed(const Duration(seconds: TIME_STEP));
       _checkBeacon(2, checkedMacAddress);
-
-      await Future.delayed(Duration(seconds: TIME_STEP));
+      await Future.delayed(const Duration(seconds: TIME_STEP));
       _checkBeacon(3, checkedMacAddress);
-
-      await Future.delayed(Duration(seconds: TIME_STEP));
+      await Future.delayed(const Duration(seconds: TIME_STEP));
       _checkBeacon(4, checkedMacAddress);
-
-      await Future.delayed(Duration(seconds: TIME_STEP));
+      await Future.delayed(const Duration(seconds: TIME_STEP));
       _checkBeacon(5, checkedMacAddress);
     } on Exception catch (e) {
-      print('\x1B[33m$e\x1B[33m');
+      if (kDebugMode) {
+        print('\x1B[33m$e\x1B[33m');
+      }
     } finally {
       beaconsChecks[checkedMacAddress] = false;
     }
@@ -202,7 +199,9 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
 
   void _logPresence(int step, String checkedMacAddress) {
     String record = 'PRESENCE $step/5 $checkedMacAddress';
-    print('\x1B[33m$record/3\x1B[33m');
+    if (kDebugMode) {
+      print('\x1B[33m$record/3\x1B[33m');
+    }
 
     setState(() {
       presenceLog = [...presenceLog, record];
@@ -221,28 +220,26 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: const Text('All beacons:'),
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text('All beacons:'),
             ),
             for (final key in beaconsFound.keys)
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(18.0),
-                  child: Text('${key} ${beaconsFound[key]}m'),
+                  child: Text('$key ${beaconsFound[key]}m'),
                 )
               ),
             const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: const Text('The nearest beacon:'),
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text('The nearest beacon:'),
             ),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(18.0),
-                child: Text(
-                  '${nearestBeacon?.key.toString() ?? ''}'
-                ),
+                child: Text(nearestBeacon?.key.toString() ?? ''),
               ),
             ),
             const SizedBox(height: 12),
@@ -250,9 +247,7 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
               child: ListView.builder(
                 itemCount: presenceLog.length,
                 itemBuilder: (BuildContext context, int index) {
-                  return Container(
-                    child: Center(child: Text(presenceLog[index])),
-                  );
+                  return Center(child: Text(presenceLog[index]));
                 }
               ),
             ),

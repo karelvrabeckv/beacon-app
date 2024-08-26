@@ -1,4 +1,4 @@
-import 'package:beacon_app/beacon.dart';
+import 'package:beacon_scanner/beacon.dart';
 
 import 'package:flutter/widgets.dart';
 import 'package:path/path.dart';
