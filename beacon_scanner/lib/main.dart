@@ -2,10 +2,13 @@ import 'dart:async';
 
 import 'package:beacon_scanner/constants.dart';
 import 'package:beacon_scanner/db.dart';
+import 'package:beacon_scanner/detected_beacon.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
 import 'package:flutter_beacon/flutter_beacon.dart';
+
 import 'package:permission_handler/permission_handler.dart';
 
 void main() {
@@ -36,12 +39,12 @@ class BeaconScannerPage extends StatefulWidget {
 }
 
 class _BeaconScannerPageState extends State<BeaconScannerPage> {
-  List<Region> targetBeacons = [];
-  Map<String, double> beaconsFound = {};
-  Map<String, bool> beaconsChecks = {};
-  MapEntry<String, double>? nearestBeacon;
-  DateTime? nearestBeaconAge;
-  List<String> presenceLog = [];
+  List<Region> _targetBeacons = [];
+  Map<String, DetectedBeacon> _detectedBeacons = {};
+
+  String _nearestBeaconMac = '';
+
+  List<String> _presenceLog = [];
 
   @override
   void initState() {
@@ -51,148 +54,135 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
   }
 
   Future<void> _initialize() async {
-    await _getTargetBeacons();
-    await _startScanning();
-  }
-
-  Future<void> _getTargetBeacons() async {
     try {
-      await Db.connect();
-      await Db.postBeacons();
-
-      final beacons = await Db.getBeacons();
-
-      for (final beacon in beacons) {
-        var targetBeacon = Region(
-          identifier: beacon.id.toString(),
-          proximityUUID: beacon.uuid,
-          major: beacon.major,
-          minor: beacon.minor,
-        );
-        targetBeacons.add(targetBeacon);
-      }
+      await _getTargetBeacons();
+      await _startScanning();
     } on Exception catch (e) {
       if (kDebugMode) {
         print('\x1B[31m$e\x1B[31m');
       }
+    }
+  }
+
+  Future<void> _getTargetBeacons() async {
+    await Db.connect();
+    await Db.postBeacons();
+
+    final beacons = await Db.getBeacons();
+    if (beacons.isEmpty) {
+      throw Exception('NO TARGET BEACONS');
+    }
+    
+    for (final beacon in beacons) {
+      var targetBeacon = Region(
+        identifier: beacon.id.toString(),
+        proximityUUID: beacon.uuid,
+        major: beacon.major,
+        minor: beacon.minor,
+      );
+      _targetBeacons.add(targetBeacon);
     }
   }
 
   Future<void> _startScanning() async {
-    try {
-      await Permission.location.request();
-      await Permission.bluetoothScan.request();
-      await Permission.bluetoothConnect.request();
-    } on Exception catch (e) {
-      if (kDebugMode) {
-        print('\x1B[31m$e\x1B[31m');
-      }
-      return;
-    }
+    await Permission.bluetoothConnect.request();
+    await Permission.bluetoothScan.request();
+    await Permission.location.request();
 
-    if (targetBeacons.isNotEmpty) {
-      flutterBeacon
-        .ranging(targetBeacons)
-        .listen((result) {
-          if (result.beacons.isNotEmpty) {
-            _updateBeaconsFound(result.beacons);
-            _updateBeaconsChecks(result.beacons);
-            _updateNearestBeacon();
+    flutterBeacon
+      .ranging(_targetBeacons)
+      .listen((result) {
+        if (result.beacons.isNotEmpty) {
+          _updateDetectedBeacons(result.beacons);
+          _updateNearestBeacon();
 
-            if (kDebugMode) {
-              print('\x1B[32mBEACONS FOUND\x1B[0m ${DateTime.now()}');
-              beaconsFound.forEach((key, value) => print('$key ${value}m'));
-            }
+          if (kDebugMode) {
+            print('\x1B[32mBEACONS UPDATED\x1B[0m ${DateTime.now()}');
           }
-      });
-    }
+        }
+    });
   }
 
-  void _updateBeaconsFound(List<Beacon> beacons) {
+  void _updateDetectedBeacons(List<Beacon> beacons) {
     for (final beacon in beacons) {
-      beaconsFound[beacon.macAddress!] = beacon.accuracy;
-    }
-  }
-
-  void _updateBeaconsChecks(List<Beacon> beacons) {
-    for (final beacon in beacons) {
-      if (!beaconsChecks.containsKey(beacon.macAddress!)) {
-        beaconsChecks[beacon.macAddress!] = false;
+      String macAddress = beacon.macAddress ?? '';
+      double distance = beacon.accuracy;
+      
+      if (_detectedBeacons.containsKey(macAddress)) {
+        _detectedBeacons[macAddress]!.distance = distance;
+      } else {
+        DetectedBeacon newDetectedBeacon = DetectedBeacon(distance: distance);
+        _detectedBeacons[macAddress] = newDetectedBeacon;
       }
     }
   }
 
   void _updateNearestBeacon() {
-    var previousMacAddress = nearestBeacon?.key;
+    String previousMacAddress = _nearestBeaconMac;
 
     setState(() {
-      nearestBeacon = beaconsFound.entries.reduce((current, next) =>
-        current.value < next.value ? current : next
-      );
+      _nearestBeaconMac = _detectedBeacons.entries.reduce((current, next) =>
+        current.value.distance < next.value.distance ? current : next
+      ).key;
     });
 
-    var currentMacAddress = nearestBeacon!.key;
+    String currentMacAddress = _nearestBeaconMac;
 
     if (previousMacAddress != currentMacAddress) {
-      // The nearest beacon has changed
-      _updateNearestBeaconAge();
+      DetectedBeacon nearestBeacon = _detectedBeacons[_nearestBeaconMac]!;
 
-      if (beaconsChecks[currentMacAddress] == false) {
-        beaconsChecks[currentMacAddress] = true;
-        _checkPresence(currentMacAddress);
+      if (nearestBeacon.isCheck == false) {
+        nearestBeacon.isCheck = true;
+        _checkPresence(_nearestBeaconMac, nearestBeacon);
       }
     }
   }
 
-  void _updateNearestBeaconAge() {
-    setState(() {
-      nearestBeaconAge = DateTime.now();
-    });
-  }
-
-  Future<void> _checkPresence(String checkedMacAddress) async {
+  Future<void> _checkPresence(String checkedMacAddress, DetectedBeacon checkedBeacon) async {
     try {
-      _checkBeacon(1, checkedMacAddress);
-      await Future.delayed(const Duration(seconds: TIME_STEP));
-      _checkBeacon(2, checkedMacAddress);
-      await Future.delayed(const Duration(seconds: TIME_STEP));
-      _checkBeacon(3, checkedMacAddress);
-      await Future.delayed(const Duration(seconds: TIME_STEP));
-      _checkBeacon(4, checkedMacAddress);
-      await Future.delayed(const Duration(seconds: TIME_STEP));
-      _checkBeacon(5, checkedMacAddress);
+      for (var i = 0; i < 5; i++) {
+        _checkBeacon(i + 1, checkedMacAddress, checkedBeacon);
+        await Future.delayed(const Duration(seconds: timeStep));
+      }
     } on Exception catch (e) {
       if (kDebugMode) {
-        print('\x1B[33m$e\x1B[33m');
+        print('\x1B[31m$e\x1B[31m');
       }
     } finally {
-      beaconsChecks[checkedMacAddress] = false;
+      checkedBeacon.isCheck = false;
     }
   }
-  void _checkBeacon(int step, String checkedMacAddress) {
-    _checkBeaconDistance(checkedMacAddress);
-    _checkBeaconChange(checkedMacAddress);
+
+  void _checkBeacon(int step, String checkedMacAddress, DetectedBeacon checkedBeacon) {
+    _checkBeaconDistance(checkedBeacon);
+    _checkNearestBeacon(checkedMacAddress, checkedBeacon);
     _logPresence(step, checkedMacAddress);
   }
 
-  void _checkBeaconDistance(String checkedMacAddress) {
-    var currentDistance = beaconsFound[checkedMacAddress]!;
+  void _checkBeaconDistance(DetectedBeacon checkedBeacon) {
+    if (checkedBeacon.distance < maxDistance) {
+      checkedBeacon.lastTimeWhenInScope = DateTime.now();
+    } else {
+      DateTime now = DateTime.now();
+      Duration period = now.difference(checkedBeacon.lastTimeWhenInScope);
+      int periodInSeconds = period.inSeconds % 60;
 
-    if (currentDistance > MAX_DISTANCE) {
-      throw Exception('CHECKED BEACON OUT OF SCOPE');
+      if (periodInSeconds > timeStep) {
+        throw Exception('CHECKS TERMINATED: Checked beacon is out of scope for long time');
+      }
     }
   }
 
-  void _checkBeaconChange(String checkedMacAddress) {
-    var currentMacAddress = nearestBeacon!.key;
-
-    if (currentMacAddress != checkedMacAddress) {
+  void _checkNearestBeacon(String checkedMacAddress, DetectedBeacon checkedBeacon) {
+    if (checkedMacAddress == _nearestBeaconMac) {
+      checkedBeacon.lastTimeWhenNearest = DateTime.now();
+    } else {
       DateTime now = DateTime.now();
-      Duration difference = now.difference(nearestBeaconAge!);
-      int differenceInSeconds = difference.inSeconds % 60;
+      Duration period = now.difference(checkedBeacon.lastTimeWhenNearest);
+      int periodInSeconds = period.inSeconds % 60;
 
-      if (differenceInSeconds > TIME_STEP) {
-        throw Exception('NEAREST BEACON CHANGED');
+      if (periodInSeconds > timeStep) {
+        throw Exception('CHECKS TERMINATED: Checked beacon is not nearest for long time');
       }
     }
   }
@@ -200,12 +190,10 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
   void _logPresence(int step, String checkedMacAddress) {
     String record = 'PRESENCE $step/5 $checkedMacAddress';
     if (kDebugMode) {
-      print('\x1B[33m$record/3\x1B[33m');
+      print('\x1B[33m$record\x1B[33m');
     }
 
-    setState(() {
-      presenceLog = [...presenceLog, record];
-    });
+    setState(() => _presenceLog = [..._presenceLog, record]);
   }
 
   @override
@@ -224,11 +212,11 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
               padding: EdgeInsets.all(8.0),
               child: Text('All beacons:'),
             ),
-            for (final key in beaconsFound.keys)
+            for (final beacon in _detectedBeacons.entries)
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(18.0),
-                  child: Text('$key ${beaconsFound[key]}m'),
+                  child: Text('${beacon.key} ${beacon.value.distance}m'),
                 )
               ),
             const SizedBox(height: 12),
@@ -239,15 +227,15 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(18.0),
-                child: Text(nearestBeacon?.key.toString() ?? ''),
+                child: Text(_nearestBeaconMac.toString()),
               ),
             ),
             const SizedBox(height: 12),
             Expanded(
               child: ListView.builder(
-                itemCount: presenceLog.length,
+                itemCount: _presenceLog.length,
                 itemBuilder: (BuildContext context, int index) {
-                  return Center(child: Text(presenceLog[index]));
+                  return Center(child: Text(_presenceLog[index]));
                 }
               ),
             ),

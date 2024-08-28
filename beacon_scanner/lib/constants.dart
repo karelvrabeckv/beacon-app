@@ -1,2 +1,2 @@
-const TIME_STEP = 10; // in seconds
-const MAX_DISTANCE = 5.0; // in meters
+const int timeStep = 10; // in seconds
+const double maxDistance = 5.0; // in meters

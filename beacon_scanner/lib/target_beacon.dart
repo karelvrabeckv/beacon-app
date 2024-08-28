@@ -1,10 +1,10 @@
-class Beacon {
+class TargetBeacon {
   final int id;
   final String uuid;
   final int major;
   final int minor;
 
-  Beacon({
+  TargetBeacon({
     required this.id,
     required this.uuid,
     required this.major,
@@ -22,6 +22,6 @@ class Beacon {
 
   @override
   String toString() {
-    return 'Beacon{id: $id, uuid: $uuid, major: $major, minor: $minor}';
+    return 'TargetBeacon{id: $id, uuid: $uuid, major: $major, minor: $minor}';
   }
 }
