@@ -1,4 +1,4 @@
-package com.example.beacon_app
+package com.example.beacon_scanner
 
 import io.flutter.embedding.android.FlutterActivity
 

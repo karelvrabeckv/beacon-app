@@ -1,4 +1,4 @@
-# beacon_app
+# beacon_scanner
 
 A new Flutter project.
 
