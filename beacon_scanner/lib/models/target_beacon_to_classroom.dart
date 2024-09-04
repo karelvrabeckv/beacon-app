@@ -1,10 +1,10 @@
 class TargetBeaconToClassroom {
-  final int id;
+  final int? id;
   final int target_beacon_id;
   final int classroom_id;
 
   TargetBeaconToClassroom({
-    required this.id,
+    this.id,
     required this.target_beacon_id,
     required this.classroom_id,
   });

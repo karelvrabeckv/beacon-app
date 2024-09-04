@@ -3,6 +3,10 @@ import 'dart:async';
 import 'package:beacon_scanner/constants.dart';
 import 'package:beacon_scanner/db.dart';
 import 'package:beacon_scanner/detected_beacon.dart';
+import 'package:beacon_scanner/models/attendance.dart';
+import 'package:beacon_scanner/models/classroom.dart';
+import 'package:beacon_scanner/models/student.dart';
+import 'package:beacon_scanner/models/target_beacon.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -44,7 +48,8 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
 
   String _nearestBeaconMac = '';
 
-  List<String> _presenceLog = [];
+  List<String> _checksLog = [];
+  List<String> _attendanceLog = [];
 
   @override
   void initState() {
@@ -55,6 +60,9 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
 
   Future<void> _initialize() async {
     try {
+      await Db.connect();
+      await Db.initialize();
+
       await _getTargetBeacons();
       await _startScanning();
     } on Exception catch (e) {
@@ -65,10 +73,7 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
   }
 
   Future<void> _getTargetBeacons() async {
-    await Db.connect();
-    await Db.postBeacons();
-
-    final beacons = await Db.getBeacons();
+    final beacons = await Db.getTargetBeacons();
     if (beacons.isEmpty) {
       throw Exception('NO TARGET BEACONS');
     }
@@ -133,17 +138,23 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
 
       if (nearestBeacon.isCheck == false) {
         nearestBeacon.isCheck = true;
-        _checkPresence(_nearestBeaconMac, nearestBeacon);
+        _checkAttendance(_nearestBeaconMac, nearestBeacon);
       }
     }
   }
 
-  Future<void> _checkPresence(String checkedMacAddress, DetectedBeacon checkedBeacon) async {
+  Future<void> _checkAttendance(String checkedMacAddress, DetectedBeacon checkedBeacon) async {
     try {
-      for (var i = 0; i < 5; i++) {
+      for (var i = 0; i < numOfChecks; i++) {
         _checkBeacon(i + 1, checkedMacAddress, checkedBeacon);
-        await Future.delayed(const Duration(seconds: timeStep));
+
+        if (i < numOfChecks - 1) {
+          await Future.delayed(const Duration(seconds: timeStep));
+        }
       }
+
+      List<Attendance> attendances = await _recordAttendance(checkedMacAddress);
+      _logAttendance(attendances);
     } on Exception catch (e) {
       if (kDebugMode) {
         print('\x1B[31m$e\x1B[31m');
@@ -156,7 +167,7 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
   void _checkBeacon(int step, String checkedMacAddress, DetectedBeacon checkedBeacon) {
     _checkBeaconDistance(checkedBeacon);
     _checkNearestBeacon(checkedMacAddress, checkedBeacon);
-    _logPresence(step, checkedMacAddress);
+    _logCheck(step, checkedMacAddress);
   }
 
   void _checkBeaconDistance(DetectedBeacon checkedBeacon) {
@@ -187,13 +198,50 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
     }
   }
 
-  void _logPresence(int step, String checkedMacAddress) {
-    String record = 'PRESENCE $step/5 $checkedMacAddress';
+  void _logCheck(int step, String checkedMacAddress) {
+    String record = 'CHECK $step/5 $checkedMacAddress';
     if (kDebugMode) {
       print('\x1B[33m$record\x1B[33m');
     }
 
-    setState(() => _presenceLog = [..._presenceLog, record]);
+    setState(() => _checksLog = [..._checksLog, record]);
+  }
+
+  void _logAttendance(List<Attendance> attendances) {
+    List<String> log = [];
+
+    for (final attendance in attendances) {
+      log.add(attendance.toString());
+    }
+
+    if (kDebugMode) {
+      print('\x1B[33m$log\x1B[33m');
+    }
+
+    setState(() => _attendanceLog = [...log]);
+  }
+
+  Future<List<Attendance>> _recordAttendance(String macAddress) async {
+    String sm_number = await Future.delayed(
+      const Duration(milliseconds: 250),
+      () => 'kvrabec',
+    );
+
+    Student student = await Db.getStudentBySmNumber(sm_number);
+    TargetBeacon targetBeacon = await Db.getTargetBeaconByMacAddress(macAddress);
+    Classroom classroom = await Db.getClassroomByTargetBeaconId(targetBeacon.id!);
+
+    await Db.postAttendance(
+      Attendance(
+        student_id: student.id!,
+        classroom_id: classroom.id!,
+        date_time: DateTime.now().toString(),
+      )
+    );
+
+    List<Attendance> attendances = await Db.getAttendanceByStudentId(student.id!);
+
+    return attendances;
   }
 
   @override
@@ -233,9 +281,18 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
             const SizedBox(height: 12),
             Expanded(
               child: ListView.builder(
-                itemCount: _presenceLog.length,
+                itemCount: _checksLog.length,
                 itemBuilder: (BuildContext context, int index) {
-                  return Center(child: Text(_presenceLog[index]));
+                  return Center(child: Text(_checksLog[index]));
+                }
+              ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _attendanceLog.length,
+                itemBuilder: (BuildContext context, int index) {
+                  return Center(child: Text(_attendanceLog[index]));
                 }
               ),
             ),

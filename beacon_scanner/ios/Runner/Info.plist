@@ -9,7 +9,7 @@
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>We need to track your position</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>We need to record your presence</string>
+	<string>We need to record your attendance</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

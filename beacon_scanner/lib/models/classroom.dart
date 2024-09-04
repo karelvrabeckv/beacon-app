@@ -1,9 +1,9 @@
 class Classroom {
-  final int id;
+  final int? id;
   final String label;
 
   Classroom({
-    required this.id,
+    this.id,
     required this.label,
   });
 

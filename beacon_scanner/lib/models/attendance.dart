@@ -1,11 +1,11 @@
 class Attendance {
-  final int id;
+  final int? id;
   final int student_id;
   final int classroom_id;
-  final DateTime date_time;
+  final String date_time;
 
   Attendance({
-    required this.id,
+    this.id,
     required this.student_id,
     required this.classroom_id,
     required this.date_time,
