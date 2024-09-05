@@ -148,8 +148,8 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
           }
         }
 
-        List<Attendance> attendances = await _recordAttendance(checkedMac);
-        _logAttendance(attendances);
+        final (student, classroom, attendance) = await _recordAttendance(checkedMac);
+        _logAttendance(student, classroom, attendance);
 
         await Future.delayed(const Duration(seconds: timeStep));
       }
@@ -203,21 +203,16 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
     setState(() => _checksLog = [..._checksLog, record]);
   }
 
-  void _logAttendance(List<Attendance> attendances) {
-    List<String> log = [];
-
-    for (final attendance in attendances) {
-      log.add(attendance.toString());
-    }
-
+  void _logAttendance(Student student, Classroom classroom, Attendance attendance) {
+    String record = 'ATTENDANCE ${student.sm_number}, ${classroom.label}, ${attendance.date_time}';
     if (kDebugMode) {
-      print('\x1B[33m$log\x1B[33m');
+      print('\x1B[33m$record\x1B[33m');
     }
 
-    setState(() => _attendanceLog = [...log]);
+    setState(() => _attendanceLog = [..._attendanceLog, record]);
   }
 
-  Future<List<Attendance>> _recordAttendance(String mac) async {
+  Future<(Student, Classroom, Attendance)> _recordAttendance(String mac) async {
     String sm_number = await Future.delayed(
       const Duration(milliseconds: 250),
       () => 'kvrabec',
@@ -235,9 +230,9 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
       )
     );
 
-    List<Attendance> attendances = await Db.getAttendanceByStudentId(student.id!);
+    List<Attendance> attendances = await Db.getAttendancesByStudentId(student.id!);
 
-    return attendances;
+    return (student, classroom, attendances.last);
   }
 
   @override

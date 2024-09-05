@@ -319,7 +319,7 @@ class Db {
     );
   }
 
-  static Future<List<Attendance>> getAttendanceByStudentId(int studentId) async {
+  static Future<List<Attendance>> getAttendancesByStudentId(int studentId) async {
     _checkDatabase();
 
     final List<Map<String, Object?>> attendances = await db!.query(
