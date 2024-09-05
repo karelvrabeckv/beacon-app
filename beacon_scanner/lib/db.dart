@@ -107,49 +107,54 @@ class Db {
   static Future<void> _fillTablesWithData() async {
     await postTargetBeacon(
       TargetBeacon(
-        mac: 'DC:8E:5D:21:FD:27',
-        uuid: 'ffffffff-1070-1234-5678-123456789123',
-        major: 1000,
-        minor: 1138
+        mac: 'C3:00:00:2A:A9:13',
+        uuid: 'e2c56db5-dffb-48d2-b060-d0f5a71096e0',
+        major: 1985,
+        minor: 13,
       )
     );
 
     await postTargetBeacon(
       TargetBeacon(
-        mac: '54:D2:72:1D:6D:6C',
-        uuid: 'a92ee200-5501-11e4-916c-0800200c9a66',
-        major: 12061,
-        minor: 28012
+        mac: 'C3:00:00:2A:A9:14',
+        uuid: 'e2c56db5-dffb-48d2-b060-d0f5a71096e0',
+        major: 1985,
+        minor: 14,
       )
     );
 
     await postTargetBeacon(
       TargetBeacon(
-        mac: '54:D2:72:8B:BE:85',
-        uuid: 'a92ee200-5501-11e4-916c-0800200c9a66',
-        major: 12939,
-        minor: 48773
+        mac: 'C3:00:00:2A:A9:15',
+        uuid: 'e2c56db5-dffb-48d2-b060-d0f5a71096e0',
+        major: 1985,
+        minor: 15,
+      )
+    );
+
+    await postTargetBeacon(
+      TargetBeacon(
+        mac: 'C3:00:00:2A:A9:16',
+        uuid: 'e2c56db5-dffb-48d2-b060-d0f5a71096e0',
+        major: 1985,
+        minor: 16,
       )
     );
 
     await postClassroom(
-      Classroom(label: 'C001')
+      Classroom(label: 'Cupboard')
     );
 
     await postClassroom(
-      Classroom(label: 'C002')
+      Classroom(label: 'Platform')
     );
 
     await postClassroom(
-      Classroom(label: 'C003')
+      Classroom(label: 'Computer')
     );
 
     await postClassroom(
-      Classroom(label: 'C004')
-    );
-
-    await postClassroom(
-      Classroom(label: 'C005')
+      Classroom(label: 'Radio')
     );
 
     await postTargetBeaconToClassroom(
@@ -157,11 +162,15 @@ class Db {
     );
 
     await postTargetBeaconToClassroom(
-      TargetBeaconToClassroom(target_beacon_id: 2, classroom_id: 1)
+      TargetBeaconToClassroom(target_beacon_id: 2, classroom_id: 3)
     );
 
     await postTargetBeaconToClassroom(
-      TargetBeaconToClassroom(target_beacon_id: 3, classroom_id: 5)
+      TargetBeaconToClassroom(target_beacon_id: 3, classroom_id: 2)
+    );
+
+    await postTargetBeaconToClassroom(
+      TargetBeaconToClassroom(target_beacon_id: 4, classroom_id: 1)
     );
 
     await postStudent(
