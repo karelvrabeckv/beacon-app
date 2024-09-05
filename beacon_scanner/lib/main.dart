@@ -145,16 +145,20 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
 
   Future<void> _checkAttendance(String checkedMacAddress, DetectedBeacon checkedBeacon) async {
     try {
-      for (var i = 0; i < numOfChecks; i++) {
-        _checkBeacon(i + 1, checkedMacAddress, checkedBeacon);
+      for (var currCheckCycle = 0; currCheckCycle < numOfCheckCycles; currCheckCycle++) {
+        for (var currCheck = 0; currCheck < numOfChecks; currCheck++) {
+          _checkBeacon(currCheck + 1, checkedMacAddress, checkedBeacon);
 
-        if (i < numOfChecks - 1) {
-          await Future.delayed(const Duration(seconds: timeStep));
+          if (currCheck < numOfChecks - 1) {
+            await Future.delayed(const Duration(seconds: timeStep));
+          }
         }
-      }
 
-      List<Attendance> attendances = await _recordAttendance(checkedMacAddress);
-      _logAttendance(attendances);
+        List<Attendance> attendances = await _recordAttendance(checkedMacAddress);
+        _logAttendance(attendances);
+
+        await Future.delayed(const Duration(seconds: timeStep));
+      }
     } on Exception catch (e) {
       if (kDebugMode) {
         print('\x1B[31m$e\x1B[31m');
@@ -199,7 +203,7 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
   }
 
   void _logCheck(int step, String checkedMacAddress) {
-    String record = 'CHECK $step/5 $checkedMacAddress';
+    String record = 'CHECK $step/$numOfChecks $checkedMacAddress';
     if (kDebugMode) {
       print('\x1B[33m$record\x1B[33m');
     }
