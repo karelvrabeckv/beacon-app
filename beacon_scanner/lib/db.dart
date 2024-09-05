@@ -205,13 +205,13 @@ class Db {
     ];
   }
 
-  static Future<TargetBeacon> getTargetBeaconByMacAddress(String macAddress) async {
+  static Future<TargetBeacon> getTargetBeaconByMac(String mac) async {
     _checkDatabase();
 
     final List<Map<String, Object?>> targetBeacons = await db!.query(
       'target_beacon',
       where: 'mac = ?',
-      whereArgs: [macAddress],
+      whereArgs: [mac],
     );
 
     if (targetBeacons.isEmpty) {

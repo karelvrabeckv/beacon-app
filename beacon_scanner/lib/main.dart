@@ -110,51 +110,45 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
 
   void _updateDetectedBeacons(List<Beacon> beacons) {
     for (final beacon in beacons) {
-      String macAddress = beacon.macAddress ?? '';
+      String mac = beacon.macAddress ?? '';
       double distance = beacon.accuracy;
-      
-      if (_detectedBeacons.containsKey(macAddress)) {
-        _detectedBeacons[macAddress]!.distance = distance;
+
+      if (_detectedBeacons.containsKey(mac)) {
+        _detectedBeacons[mac]!.distance = distance;
       } else {
         DetectedBeacon newDetectedBeacon = DetectedBeacon(distance: distance);
-        _detectedBeacons[macAddress] = newDetectedBeacon;
+        _detectedBeacons[mac] = newDetectedBeacon;
       }
     }
   }
 
   void _updateNearestBeacon() {
-    String previousMacAddress = _nearestBeaconMac;
-
     setState(() {
       _nearestBeaconMac = _detectedBeacons.entries.reduce((current, next) =>
         current.value.distance < next.value.distance ? current : next
       ).key;
     });
 
-    String currentMacAddress = _nearestBeaconMac;
+    DetectedBeacon nearestBeacon = _detectedBeacons[_nearestBeaconMac]!;
 
-    if (previousMacAddress != currentMacAddress) {
-      DetectedBeacon nearestBeacon = _detectedBeacons[_nearestBeaconMac]!;
-
-      if (nearestBeacon.isCheck == false) {
-        nearestBeacon.isCheck = true;
-        _checkAttendance(_nearestBeaconMac, nearestBeacon);
-      }
+    if (nearestBeacon.isCheck == false) {
+      nearestBeacon.isCheck = true;
+      _checkAttendance(_nearestBeaconMac, nearestBeacon);
     }
   }
 
-  Future<void> _checkAttendance(String checkedMacAddress, DetectedBeacon checkedBeacon) async {
+  Future<void> _checkAttendance(String checkedMac, DetectedBeacon checkedBeacon) async {
     try {
       for (var currCheckCycle = 0; currCheckCycle < numOfCheckCycles; currCheckCycle++) {
         for (var currCheck = 0; currCheck < numOfChecks; currCheck++) {
-          _checkBeacon(currCheck + 1, checkedMacAddress, checkedBeacon);
+          _checkBeacon(currCheck + 1, checkedMac, checkedBeacon);
 
           if (currCheck < numOfChecks - 1) {
             await Future.delayed(const Duration(seconds: timeStep));
           }
         }
 
-        List<Attendance> attendances = await _recordAttendance(checkedMacAddress);
+        List<Attendance> attendances = await _recordAttendance(checkedMac);
         _logAttendance(attendances);
 
         await Future.delayed(const Duration(seconds: timeStep));
@@ -168,10 +162,10 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
     }
   }
 
-  void _checkBeacon(int step, String checkedMacAddress, DetectedBeacon checkedBeacon) {
+  void _checkBeacon(int step, String checkedMac, DetectedBeacon checkedBeacon) {
     _checkBeaconDistance(checkedBeacon);
-    _checkNearestBeacon(checkedMacAddress, checkedBeacon);
-    _logCheck(step, checkedMacAddress);
+    _checkNearestBeacon(checkedMac, checkedBeacon);
+    _logCheck(step, checkedMac);
   }
 
   void _checkBeaconDistance(DetectedBeacon checkedBeacon) {
@@ -180,30 +174,28 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
     } else {
       DateTime now = DateTime.now();
       Duration period = now.difference(checkedBeacon.lastTimeWhenInScope);
-      int periodInSeconds = period.inSeconds % 60;
 
-      if (periodInSeconds > timeStep) {
+      if (period.inSeconds > timeStep) {
         throw Exception('CHECKS TERMINATED: Checked beacon is out of scope for long time');
       }
     }
   }
 
-  void _checkNearestBeacon(String checkedMacAddress, DetectedBeacon checkedBeacon) {
-    if (checkedMacAddress == _nearestBeaconMac) {
+  void _checkNearestBeacon(String checkedMac, DetectedBeacon checkedBeacon) {
+    if (checkedMac == _nearestBeaconMac) {
       checkedBeacon.lastTimeWhenNearest = DateTime.now();
     } else {
       DateTime now = DateTime.now();
       Duration period = now.difference(checkedBeacon.lastTimeWhenNearest);
-      int periodInSeconds = period.inSeconds % 60;
 
-      if (periodInSeconds > timeStep) {
+      if (period.inSeconds > timeStep) {
         throw Exception('CHECKS TERMINATED: Checked beacon is not nearest for long time');
       }
     }
   }
 
-  void _logCheck(int step, String checkedMacAddress) {
-    String record = 'CHECK $step/$numOfChecks $checkedMacAddress';
+  void _logCheck(int step, String checkedMac) {
+    String record = 'CHECK $step/$numOfChecks $checkedMac';
     if (kDebugMode) {
       print('\x1B[33m$record\x1B[33m');
     }
@@ -225,14 +217,14 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
     setState(() => _attendanceLog = [...log]);
   }
 
-  Future<List<Attendance>> _recordAttendance(String macAddress) async {
+  Future<List<Attendance>> _recordAttendance(String mac) async {
     String sm_number = await Future.delayed(
       const Duration(milliseconds: 250),
       () => 'kvrabec',
     );
 
     Student student = await Db.getStudentBySmNumber(sm_number);
-    TargetBeacon targetBeacon = await Db.getTargetBeaconByMacAddress(macAddress);
+    TargetBeacon targetBeacon = await Db.getTargetBeaconByMac(mac);
     Classroom classroom = await Db.getClassroomByTargetBeaconId(targetBeacon.id!);
 
     await Db.postAttendance(
