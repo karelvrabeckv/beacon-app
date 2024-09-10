@@ -1,0 +1,22 @@
+{
+    "flutter": {
+        "platforms": {
+            "android": {
+                "default": {
+                    "projectId": "iot-beacon-scanner",
+                    "appId": "1:126158136008:android:99428b2667d60615f23bfd",
+                    "fileOutput": "android/app/google-services.json"
+                }
+            },
+            "dart": {
+                "lib/firebase_options.dart": {
+                    "projectId": "iot-beacon-scanner",
+                    "configurations": {
+                        "android": "1:126158136008:android:99428b2667d60615f23bfd",
+                        "ios": "1:126158136008:ios:2ba3ef604d1f92aaf23bfd"
+                    }
+                }
+            }
+        }
+    }
+}
