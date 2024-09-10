@@ -1,5 +1,5 @@
 name: beacon_scanner
-description: "A new Flutter project."
+description: "A Flutter application for scanning IoT beacons."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -10,8 +10,8 @@ dependencies:
   flutter:
     sdk: flutter
 
-  cupertino_icons: ^1.0.8
   flutter_beacon: ^0.5.1
+  iconly: ^1.0.1
   path: ^1.9.0
   permission_handler: ^11.3.1
   sqflite: ^2.3.3+1
@@ -23,4 +23,13 @@ dev_dependencies:
   flutter_lints: ^4.0.0
 
 flutter:
+  assets:
+    - assets/
+
+  fonts:
+    - family: Montserrat
+      fonts:
+        - asset: fonts/Montserrat.ttf
+        - asset: fonts/Montserrat-Italic.ttf
+
   uses-material-design: true
