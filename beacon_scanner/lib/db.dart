@@ -142,35 +142,35 @@ class Db {
     );
 
     await postClassroom(
-      Classroom(label: 'Cupboard')
+      Classroom(label: 'Creativity Lab')
     );
 
     await postClassroom(
-      Classroom(label: 'Platform')
+      Classroom(label: '137')
     );
 
     await postClassroom(
-      Classroom(label: 'Computer')
+      Classroom(label: '033')
     );
 
     await postClassroom(
-      Classroom(label: 'Radio')
+      Classroom(label: '034')
     );
 
     await postTargetBeaconToClassroom(
-      TargetBeaconToClassroom(target_beacon_id: 1, classroom_id: 4)
+      TargetBeaconToClassroom(target_beacon_id: 1, classroom_id: 1)
     );
 
     await postTargetBeaconToClassroom(
-      TargetBeaconToClassroom(target_beacon_id: 2, classroom_id: 3)
+      TargetBeaconToClassroom(target_beacon_id: 2, classroom_id: 2)
     );
 
     await postTargetBeaconToClassroom(
-      TargetBeaconToClassroom(target_beacon_id: 3, classroom_id: 2)
+      TargetBeaconToClassroom(target_beacon_id: 3, classroom_id: 3)
     );
 
     await postTargetBeaconToClassroom(
-      TargetBeaconToClassroom(target_beacon_id: 4, classroom_id: 1)
+      TargetBeaconToClassroom(target_beacon_id: 4, classroom_id: 4)
     );
 
     await postStudent(
