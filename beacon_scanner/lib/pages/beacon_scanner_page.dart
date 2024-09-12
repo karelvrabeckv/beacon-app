@@ -142,6 +142,7 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
         print('\x1B[31m$e\x1B[31m');
       }
     } finally {
+      checkedBeacon.resetCurrCheck();
       checkedBeacon.isCheck = false;
     }
   }
@@ -195,11 +196,7 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
   }
 
   Future<(Student, Classroom, Attendance)> _recordAttendance(String mac) async {
-    String sm_number = await Future.delayed(
-      const Duration(milliseconds: 250),
-      () => 'kvrabec',
-    );
-
+    String sm_number = (Auth.user?.email ?? '').split('@')[0];
     Student student = await Db.getStudentBySmNumber(sm_number);
     TargetBeacon targetBeacon = await Db.getTargetBeaconByMac(mac);
     Classroom classroom = await Db.getClassroomByTargetBeaconId(targetBeacon.id!);

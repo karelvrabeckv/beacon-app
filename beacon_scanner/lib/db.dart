@@ -174,15 +174,11 @@ class Db {
     );
 
     await postStudent(
+      Student(name: 'Karel', surname: 'Vrabec', sm_number: 'karelvrabeckv')
+    );
+
+    await postStudent(
       Student(name: 'Karel', surname: 'Vrabec', sm_number: 'kvrabec')
-    );
-
-    await postStudent(
-      Student(name: 'John', surname: 'Smith', sm_number: 'jsmith')
-    );
-
-    await postStudent(
-      Student(name: 'Jack', surname: 'Brown', sm_number: 'jbrown')
     );
   }
 
