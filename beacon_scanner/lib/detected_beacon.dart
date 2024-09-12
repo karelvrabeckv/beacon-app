@@ -1,4 +1,5 @@
 class DetectedBeacon {
+  int currCheck = 0;
   double distance = 0.0;
   bool isCheck = false;
   DateTime lastTimeWhenNearest = DateTime.now();
@@ -7,4 +8,12 @@ class DetectedBeacon {
   DetectedBeacon({
     required this.distance,
   });
+
+  void resetCurrCheck() {
+    currCheck = 0;
+  }
+
+  void incrementCurrCheck() {
+    currCheck = currCheck + 1;
+  }
 }

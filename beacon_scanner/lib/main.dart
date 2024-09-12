@@ -26,6 +26,18 @@ class BeaconScanner extends StatelessWidget {
       title: 'Beacon Scanner',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
+        fontFamily: 'Montserrat',
+        scaffoldBackgroundColor: Colors.white,
+        snackBarTheme: SnackBarThemeData(
+          actionTextColor: Colors.white,
+          backgroundColor: Colors.red,
+        ),
+        textTheme: TextTheme(
+          headlineMedium: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         useMaterial3: true,
       ),
     );

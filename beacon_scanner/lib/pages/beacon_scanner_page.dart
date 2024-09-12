@@ -15,6 +15,9 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter_beacon/flutter_beacon.dart';
 
+import 'package:icons_plus/icons_plus.dart';
+import 'package:intl/intl.dart';
+
 import 'package:permission_handler/permission_handler.dart';
 
 class BeaconScannerPage extends StatefulWidget {
@@ -25,13 +28,10 @@ class BeaconScannerPage extends StatefulWidget {
 }
 
 class _BeaconScannerPageState extends State<BeaconScannerPage> {
+  String _nearestBeaconMac = '';
   List<Region> _targetBeacons = [];
   Map<String, DetectedBeacon> _detectedBeacons = {};
-
-  String _nearestBeaconMac = '';
-
-  List<String> _checksLog = [];
-  List<String> _attendanceLog = [];
+  List<(String, String, String, String)> _attendanceLog = [];
 
   @override
   void initState() {
@@ -123,7 +123,8 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
     try {
       for (var currCheckCycle = 0; currCheckCycle < numOfCheckCycles; currCheckCycle++) {
         for (var currCheck = 0; currCheck < numOfChecks; currCheck++) {
-          _checkBeacon(currCheck + 1, checkedMac, checkedBeacon);
+          _checkBeacon(checkedMac, checkedBeacon);
+          checkedBeacon.incrementCurrCheck();
 
           if (currCheck < numOfChecks - 1) {
             await Future.delayed(const Duration(seconds: timeStep));
@@ -134,6 +135,7 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
         _logAttendance(student, classroom, attendance);
 
         await Future.delayed(const Duration(seconds: timeStep));
+        checkedBeacon.resetCurrCheck();
       }
     } on Exception catch (e) {
       if (kDebugMode) {
@@ -144,10 +146,9 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
     }
   }
 
-  void _checkBeacon(int step, String checkedMac, DetectedBeacon checkedBeacon) {
+  void _checkBeacon(String checkedMac, DetectedBeacon checkedBeacon) {
     _checkBeaconDistance(checkedBeacon);
     _checkNearestBeacon(checkedMac, checkedBeacon);
-    _logCheck(step, checkedMac);
   }
 
   void _checkBeaconDistance(DetectedBeacon checkedBeacon) {
@@ -158,6 +159,7 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
       Duration period = now.difference(checkedBeacon.lastTimeWhenInScope);
 
       if (period.inSeconds > timeStep) {
+        checkedBeacon.resetCurrCheck();
         throw Exception('CHECKS TERMINATED: Checked beacon is out of scope for long time');
       }
     }
@@ -171,25 +173,23 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
       Duration period = now.difference(checkedBeacon.lastTimeWhenNearest);
 
       if (period.inSeconds > timeStep) {
+        checkedBeacon.resetCurrCheck();
         throw Exception('CHECKS TERMINATED: Checked beacon is not nearest for long time');
       }
     }
   }
 
-  void _logCheck(int step, String checkedMac) {
-    String record = 'CHECK $step/$numOfChecks $checkedMac';
-    if (kDebugMode) {
-      print('\x1B[33m$record\x1B[33m');
-    }
-
-    setState(() => _checksLog = [..._checksLog, record]);
-  }
-
   void _logAttendance(Student student, Classroom classroom, Attendance attendance) {
-    String record = 'ATTENDANCE ${student.sm_number}, ${classroom.label}, ${attendance.date_time}';
-    if (kDebugMode) {
-      print('\x1B[33m$record\x1B[33m');
-    }
+    DateTime dateTime = DateTime.parse(attendance.date_time);
+    DateFormat dateFormatter = DateFormat('dd. MM. yy');
+    DateFormat timeFormatter = DateFormat('HH:mm');
+
+    (String, String, String, String) record = (
+      student.sm_number,
+      classroom.label,
+      dateFormatter.format(dateTime),
+      timeFormatter.format(dateTime),
+    );
 
     setState(() => _attendanceLog = [..._attendanceLog, record]);
   }
@@ -221,67 +221,188 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Center(
-          child: Column(
-            children: <Widget>[
-              const SizedBox(height: 12),
-              CircleAvatar(
-                foregroundImage: NetworkImage(Auth.user?.photoURL ?? ''),
-              ),
-              Text(Auth.user?.displayName ?? ''),
-              ElevatedButton(
-                onPressed: () async {
-                  await Auth.signOut();
-        
-                  Navigator.of(context).pushReplacement(MaterialPageRoute(
-                    builder: (context) => const LoginPage(),
-                  ));
-                },
-                child: Text('Logout'),
-              ),
-              const SizedBox(height: 12),
-              const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Text('All beacons:'),
-              ),
-              for (final beacon in _detectedBeacons.entries)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(18.0),
-                    child: Text('${beacon.key} ${beacon.value.distance}m'),
-                  )
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Center(
+                  child: Column(
+                    children: <Widget>[
+                      const SizedBox(height: 3 * gap),
+                      Padding(
+                        padding: EdgeInsets.all(2 * gap),
+                        child: Text(
+                          'Beacons',
+                          style: Theme.of(context).textTheme.headlineMedium,
+                        ),
+                      ),
+                      _detectedBeacons.length == 0 ?
+                        Text(
+                          'There are no beacons.',
+                          style: TextStyle(fontStyle: FontStyle.italic),
+                        )
+                        :
+                        Container(
+                          child: Column(
+                            children: [
+                              for (final beacon in _detectedBeacons.entries)
+                                Card(
+                                  color: beacon.key == _nearestBeaconMac
+                                    ? Theme.of(context).colorScheme.primaryContainer
+                                    : Theme.of(context).colorScheme.surfaceContainerLow,
+                                  elevation: 1.0,
+                                  margin: EdgeInsets.symmetric(
+                                    horizontal: 4 * gap,
+                                    vertical: 1 * gap,
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(2 * gap),
+                                    child: ListTile(
+                                      leading: Container(
+                                        child: Icon(
+                                          BoxIcons.bx_bluetooth,
+                                          color: Colors.black,
+                                          size: 25.0,
+                                        ),
+                                      ),
+                                      title: Container(
+                                        padding: EdgeInsets.only(left: 2 * gap),
+                                        decoration: new BoxDecoration(
+                                            border: new Border(
+                                                left: new BorderSide(
+                                                  color: Colors.black,
+                                                  width: 0.75,
+                                                ),
+                                            ),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Text(
+                                                  'MAC: ',
+                                                  style: TextStyle(fontWeight: FontWeight.w600)
+                                                ),
+                                                Text('${beacon.key}'),
+                                              ],
+                                            ),
+                                            Row(
+                                              children: [
+                                                Text(
+                                                  'Distance: ',
+                                                  style: TextStyle(fontWeight: FontWeight.w600)
+                                                ),
+                                                Text('${beacon.value.distance}m'),
+                                              ],
+                                            ),
+                                            Row(
+                                              children: [
+                                                Text(
+                                                  'Checks: ',
+                                                  style: TextStyle(fontWeight: FontWeight.w600)
+                                                ),
+                                                Text('${beacon.value.currCheck}/${numOfChecks}'),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                )
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 3 * gap),
+                      Padding(
+                        padding: EdgeInsets.all(2 * gap),
+                        child: Text(
+                          'Attendance',
+                          style: Theme.of(context).textTheme.headlineMedium,
+                        ),
+                      ),
+                      _attendanceLog.length == 0 ?
+                        Text(
+                          'There is no attendance.',
+                          style: TextStyle(fontStyle: FontStyle.italic),
+                        )
+                        :
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4 * gap,
+                            vertical: 1 * gap,
+                          ),
+                          child: Column(
+                            children: [
+                              for (final attendance in _attendanceLog)
+                                Text.rich(
+                                  TextSpan(
+                                    style: TextStyle(fontStyle: FontStyle.italic),
+                                    children: [
+                                      TextSpan(text: 'Student '),
+                                      TextSpan(
+                                        text: '${attendance.$1} ',
+                                        style: TextStyle(fontWeight: FontWeight.w600)
+                                      ),
+                                      TextSpan(text: 'attended '),
+                                      TextSpan(
+                                        text: '${attendance.$2} ',
+                                        style: TextStyle(fontWeight: FontWeight.w600)
+                                      ),
+                                      TextSpan(text: 'on '),
+                                      TextSpan(
+                                        text: '${attendance.$3} ',
+                                        style: TextStyle(fontWeight: FontWeight.w600)
+                                      ),
+                                      TextSpan(text: 'at '),
+                                      TextSpan(
+                                        text: '${attendance.$4}',
+                                        style: TextStyle(fontWeight: FontWeight.w600)
+                                      ),
+                                      TextSpan(text: '.'),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 2 * gap),
+                    ],
+                  ),
                 ),
-              const SizedBox(height: 12),
-              const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Text('The nearest beacon:'),
               ),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(18.0),
-                  child: Text(_nearestBeaconMac.toString()),
-                ),
+            ),
+            Divider(
+              color: const Color.fromARGB(255, 246, 246, 248),
+              height: 0.0,
+            ),
+            Container(
+              padding: const EdgeInsets.all(4 * gap),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    foregroundImage: NetworkImage(Auth.user?.photoURL ?? ''),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2 * gap),
+                    child: Text(Auth.user?.displayName ?? ''),
+                  ),
+                  Spacer(),
+                  FilledButton.tonalIcon(
+                    icon: const Icon(BoxIcons.bx_log_out),
+                    label: Text('Logout'),
+                    onPressed: () async {
+                      await Auth.signOut();
+                          
+                      Navigator.of(context).pushReplacement(MaterialPageRoute(
+                        builder: (context) => const LoginPage(),
+                      ));
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: _checksLog.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    return Center(child: Text(_checksLog[index]));
-                  }
-                ),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: _attendanceLog.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    return Center(child: Text(_attendanceLog[index]));
-                  }
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
