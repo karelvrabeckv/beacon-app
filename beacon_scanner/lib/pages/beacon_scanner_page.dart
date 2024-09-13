@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:beacon_scanner/auth.dart';
 import 'package:beacon_scanner/constants.dart';
 import 'package:beacon_scanner/db.dart';
+import 'package:beacon_scanner/db/firestore.dart';
 import 'package:beacon_scanner/detected_beacon.dart';
 import 'package:beacon_scanner/models/attendance.dart';
 import 'package:beacon_scanner/models/classroom.dart';
@@ -28,6 +29,8 @@ class BeaconScannerPage extends StatefulWidget {
 }
 
 class _BeaconScannerPageState extends State<BeaconScannerPage> {
+  Firestore _firestoreDB = Firestore();
+  
   String _nearestBeaconMac = '';
   List<Region> _targetBeacons = [];
   Map<String, DetectedBeacon> _detectedBeacons = {};
@@ -201,7 +204,7 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
     TargetBeacon targetBeacon = await Db.getTargetBeaconByMac(mac);
     Classroom classroom = await Db.getClassroomByTargetBeaconId(targetBeacon.id!);
 
-    await Db.postAttendance(
+    await _firestoreDB.addAttendance(
       Attendance(
         student_id: student.id!,
         classroom_id: classroom.id!,
@@ -209,9 +212,9 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
       )
     );
 
-    List<Attendance> attendances = await Db.getAttendancesByStudentId(student.id!);
+    List<Attendance> attendance = await _firestoreDB.getAttendanceByStudentId(student.id!);
 
-    return (student, classroom, attendances.last);
+    return (student, classroom, attendance.last);
   }
 
   @override

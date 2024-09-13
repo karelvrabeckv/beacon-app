@@ -1,4 +1,3 @@
-import 'package:beacon_scanner/models/attendance.dart';
 import 'package:beacon_scanner/models/classroom.dart';
 import 'package:beacon_scanner/models/student.dart';
 import 'package:beacon_scanner/models/target_beacon.dart';
@@ -50,9 +49,6 @@ class Db {
     await db!.execute(
       'DROP TABLE IF EXISTS student'
     );
-    await db!.execute(
-      'DROP TABLE IF EXISTS attendance'
-    );
   }
 
   static Future<void> _createTables() async {
@@ -89,17 +85,6 @@ class Db {
         'name TEXT,'
         'surname TEXT,'
         'sm_number TEXT'
-      ')'
-    );
-
-    await db!.execute(
-      'CREATE TABLE attendance('
-        'id INTEGER PRIMARY KEY AUTOINCREMENT,'
-        'student_id INTEGER,'
-        'classroom_id INTEGER,'
-        'date_time DATETIME,'
-        'FOREIGN KEY (student_id) REFERENCES student (id),'
-        'FOREIGN KEY (classroom_id) REFERENCES classroom (id)'
       ')'
     );
   }
@@ -311,36 +296,6 @@ class Db {
     await db!.insert(
       'student',
       student.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-  }
-
-  static Future<List<Attendance>> getAttendancesByStudentId(int studentId) async {
-    _checkDatabase();
-
-    final List<Map<String, Object?>> attendances = await db!.query(
-      'attendance',
-      where: 'student_id = ?',
-      whereArgs: [studentId],
-    );
-
-    return [
-      for (final {
-        'id': id as int,
-        'student_id': student_id as int,
-        'classroom_id': classroom_id as int,
-        'date_time': date_time as String,
-      } in attendances)
-        Attendance(id: id, student_id: student_id, classroom_id: classroom_id, date_time: date_time)
-    ];
-  }
-
-  static Future<void> postAttendance(Attendance attendance) async {
-    _checkDatabase();
-
-    await db!.insert(
-      'attendance',
-      attendance.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
