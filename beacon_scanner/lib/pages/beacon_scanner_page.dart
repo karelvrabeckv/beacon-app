@@ -50,7 +50,7 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
 
       await _getTargetBeacons();
       await _startScanning();
-    } on Exception catch (e) {
+    } catch (e) {
       if (kDebugMode) {
         print('\x1B[31m$e\x1B[31m');
       }
@@ -140,7 +140,7 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
         await Future.delayed(const Duration(seconds: timeStep));
         checkedBeacon.resetCurrCheck();
       }
-    } on Exception catch (e) {
+    } catch (e) {
       if (kDebugMode) {
         print('\x1B[31m$e\x1B[31m');
       }
