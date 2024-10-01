@@ -9,7 +9,7 @@ import 'package:path/path.dart';
 
 import 'package:sqflite/sqflite.dart';
 
-class Db {
+class Sqlite {
   static Database? db;
 
   static void _checkDatabase() {

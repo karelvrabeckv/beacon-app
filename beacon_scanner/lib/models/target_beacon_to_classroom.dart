@@ -16,9 +16,4 @@ class TargetBeaconToClassroom {
       'classroom_id': classroom_id,
     };
   }
-
-  @override
-  String toString() {
-    return 'TargetBeaconToClassroom{id: $id, target_beacon_id: $target_beacon_id, classroom_id: $classroom_id}';
-  }
 }

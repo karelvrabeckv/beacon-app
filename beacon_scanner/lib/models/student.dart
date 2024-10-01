@@ -19,9 +19,4 @@ class Student {
       'sm_number': sm_number,
     };
   }
-
-  @override
-  String toString() {
-    return 'Student{id: $id, name: $name, surname: $surname, sm_number: $sm_number}';
-  }
 }

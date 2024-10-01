@@ -14,6 +14,6 @@ class DetectedBeacon {
   }
 
   void incrementCurrCheck() {
-    currCheck = currCheck + 1;
+    currCheck += 1;
   }
 }

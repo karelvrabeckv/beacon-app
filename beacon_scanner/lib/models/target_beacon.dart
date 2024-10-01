@@ -22,9 +22,4 @@ class TargetBeacon {
       'minor': minor,
     };
   }
-
-  @override
-  String toString() {
-    return 'TargetBeacon{id: $id, mac: $mac, uuid: $uuid, major: $major, minor: $minor}';
-  }
 }

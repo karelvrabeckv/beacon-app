@@ -13,9 +13,4 @@ class Classroom {
       'label': label,
     };
   }
-
-  @override
-  String toString() {
-    return 'Classroom{id: $id, label: $label}';
-  }
 }

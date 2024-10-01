@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We need to track your position</string>
+	<string>We need to record your attendance</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>We need to track your position</string>
+	<string>We need to record your attendance</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>We need to track your position</string>
+	<string>We need to record your attendance</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>We need to record your attendance</string>
 	<key>CFBundleDevelopmentRegion</key>

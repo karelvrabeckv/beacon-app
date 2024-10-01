@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:beacon_scanner/auth.dart';
 import 'package:beacon_scanner/constants.dart';
-import 'package:beacon_scanner/db.dart';
+import 'package:beacon_scanner/db/sqlite.dart';
 import 'package:beacon_scanner/db/firestore.dart';
 import 'package:beacon_scanner/detected_beacon.dart';
 import 'package:beacon_scanner/models/attendance.dart';
@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_beacon/flutter_beacon.dart';
 
 import 'package:icons_plus/icons_plus.dart';
+
 import 'package:intl/intl.dart';
 
 import 'package:permission_handler/permission_handler.dart';
@@ -45,8 +46,8 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
 
   Future<void> _initialize() async {
     try {
-      await Db.connect();
-      await Db.initialize();
+      await Sqlite.connect();
+      await Sqlite.initialize();
 
       await _getTargetBeacons();
       await _startScanning();
@@ -58,7 +59,7 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
   }
 
   Future<void> _getTargetBeacons() async {
-    final beacons = await Db.getTargetBeacons();
+    final beacons = await Sqlite.getTargetBeacons();
     if (beacons.isEmpty) {
       throw Exception('NO TARGET BEACONS');
     }
@@ -183,6 +184,25 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
     }
   }
 
+  Future<(Student, Classroom, Attendance)> _recordAttendance(String mac) async {
+    String sm_number = (Auth.user?.email ?? '').split('@')[0];
+    Student student = await Sqlite.getStudentBySmNumber(sm_number);
+    TargetBeacon targetBeacon = await Sqlite.getTargetBeaconByMac(mac);
+    Classroom classroom = await Sqlite.getClassroomByTargetBeaconId(targetBeacon.id!);
+
+    await _firestoreDB.addAttendance(
+      Attendance(
+        student_id: student.id!,
+        classroom_id: classroom.id!,
+        date_time: DateTime.now().toString(),
+      )
+    );
+
+    List<Attendance> attendance = await _firestoreDB.getAttendanceByStudentId(student.id!);
+
+    return (student, classroom, attendance.last);
+  }
+
   void _logAttendance(Student student, Classroom classroom, Attendance attendance) {
     DateTime dateTime = DateTime.parse(attendance.date_time);
     DateFormat dateFormatter = DateFormat('dd. MM. yy');
@@ -196,25 +216,6 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
     );
 
     setState(() => _attendanceLog = [..._attendanceLog, record]);
-  }
-
-  Future<(Student, Classroom, Attendance)> _recordAttendance(String mac) async {
-    String sm_number = (Auth.user?.email ?? '').split('@')[0];
-    Student student = await Db.getStudentBySmNumber(sm_number);
-    TargetBeacon targetBeacon = await Db.getTargetBeaconByMac(mac);
-    Classroom classroom = await Db.getClassroomByTargetBeaconId(targetBeacon.id!);
-
-    await _firestoreDB.addAttendance(
-      Attendance(
-        student_id: student.id!,
-        classroom_id: classroom.id!,
-        date_time: DateTime.now().toString(),
-      )
-    );
-
-    List<Attendance> attendance = await _firestoreDB.getAttendanceByStudentId(student.id!);
-
-    return (student, classroom, attendance.last);
   }
 
   @override
@@ -250,7 +251,6 @@ class _BeaconScannerPageState extends State<BeaconScannerPage> {
                                   color: beacon.key == _nearestBeaconMac
                                     ? Theme.of(context).colorScheme.primaryContainer
                                     : Theme.of(context).colorScheme.surfaceContainerLow,
-                                  elevation: 1.0,
                                   margin: EdgeInsets.symmetric(
                                     horizontal: 4 * gap,
                                     vertical: 1 * gap,
